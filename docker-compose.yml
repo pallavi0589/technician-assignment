@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    networks:
+      - backend
+    volumes:
+      - mongodb_data:/data/db  # Ensures MongoDB data persists across restarts
+    restart: always
+    environment:
+      MONGO_INITDB_DATABASE: assignmentdb  # Explicitly set default database
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  assignment-api:
+    build: .
+    container_name: assignment-container
+    ports:
+      - "8080:8080"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/assignmentdb  # Use full MongoDB URI
+      SPRING_DATA_MONGODB_DATABASE: assignmentdb  
+      SPRING_PROFILES_ACTIVE: dev
+    networks:
+      - backend
+    restart: always
+
+networks:
+  backend:
+
+volumes:
+  mongodb_data:  # Persist MongoDB data
